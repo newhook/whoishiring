@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { Input } from './components/ui/input';
 import { Button } from './components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent } from './components/ui/card';
+import { RadioGroup, RadioGroupItem } from './components/ui/radio-group';
+import { Label } from './components/ui/label';
 
 interface Item {
   id: number;
@@ -44,6 +46,7 @@ const JobSearchApp = () => {
   const [prompt, setPrompt] = useState('');
   const [results, setResults] = useState<Item[]>([]);
   const [parents, setParents] = useState<Item[]>([]);
+  const [searchType, setSearchType] = useState('hiring');
   const [loading, setLoading] = useState(false);
 
   const searchJobs = async () => {
@@ -51,7 +54,7 @@ const JobSearchApp = () => {
     try {
       // Replace this URL with your actual API endpoint
       // const response = await fetch(`https://api.example.com/jobs?months=${months}&prompt=${encodeURIComponent(prompt)}`);
-       const response = await fetch(`http://localhost:8080/jobs?months=${months}&prompt=${encodeURIComponent(prompt)}`);
+      const response = await fetch(`http://localhost:8080/jobs?months=${months}&prompt=${encodeURIComponent(prompt)}&type=${searchType}`);
       const data = await response.json();
       setResults(data.comments || []);
       setParents(data.parents || []);
@@ -79,6 +82,16 @@ const JobSearchApp = () => {
           onChange={(e) => setPrompt(e.target.value)}
           placeholder="Search prompt"
         />
+        <RadioGroup defaultValue="hiring" onValueChange={setSearchType}>
+          <div className="flex items-center space-x-2">
+            <RadioGroupItem value="hiring" id="hiring" />
+            <Label htmlFor="hiring">Who is hiring</Label>
+          </div>
+          <div className="flex items-center space-x-2">
+            <RadioGroupItem value="seekers" id="seekers" />
+            <Label htmlFor="seekers">Who wants to be hired</Label>
+          </div>
+        </RadioGroup>
         <Button onClick={searchJobs} disabled={loading}>
           {loading ? 'Searching...' : 'Search Jobs'}
         </Button>
