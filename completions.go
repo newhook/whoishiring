@@ -36,7 +36,7 @@ var completions = map[string]Completion{
 		Model: Claude,
 		GetTerms: func(ctx context.Context, jobPrompt any) ([]string, error) {
 			var terms []string
-			resp, err := claude.Completions(ctx, "terms_claude.json", false, searchTermsTemplate, jobPrompt)
+			resp, err := claude.Completions(ctx, "terms_claude.json", true, searchTermsTemplate, jobPrompt)
 			if err != nil {
 				return nil, errors.WithStack(err)
 			}
@@ -48,7 +48,7 @@ var completions = map[string]Completion{
 		},
 		GetJobs: func(ctx context.Context, context any) ([]string, error) {
 			var jobIDs []string
-			r2, err := claude.Completions(ctx, "job_claude.json", false, jobSearchTemplate, context)
+			r2, err := claude.Completions(ctx, "job_claude.json", true, jobSearchTemplate, context)
 			if err != nil {
 				return nil, errors.WithStack(err)
 			}

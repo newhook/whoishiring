@@ -4,8 +4,8 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
+	"github.com/pkg/errors"
 	"io"
 	"net/http"
 	"os"
@@ -53,7 +53,7 @@ func Completions(ctx context.Context, file string, call bool, t *template.Templa
 	if err != nil {
 		return nil, err
 	}
-	fmt.Println(sb.String())
+	//fmt.Println(sb.String())
 	var body []byte
 	if call {
 		apiKey := os.Getenv("ANTHROPIC_API_KEY")
@@ -122,12 +122,12 @@ func parseJsonResponse2[T any](choice string, result T) error {
 	text := choice
 	i := strings.Index(choice, "[")
 	if i == -1 {
-		return fmt.Errorf("could not find boundary")
+		return errors.Errorf("could not find boundary")
 	}
 	text = choice[i+1:]
 	i = strings.LastIndex(text, "]")
 	if i == -1 {
-		return fmt.Errorf("could not find boundary")
+		return errors.Errorf("could not find boundary")
 	}
 	text = text[:i]
 	if err := json.Unmarshal([]byte("["+text+"]"), result); err == nil {
@@ -142,17 +142,17 @@ func parseJsonResponse3[T any](choice string, result T) error {
 	boundary := "```"
 	i := strings.Index(text, boundary)
 	if i == -1 {
-		return fmt.Errorf("could not find boundary")
+		return errors.Errorf("could not find boundary")
 	}
 	text = text[i+3:]
 	i = strings.Index(text, boundary)
 	if i == -1 {
-		return fmt.Errorf("could not find boundary")
+		return errors.Errorf("could not find boundary")
 	}
 	text = text[:i]
 	fmt.Println(text)
 	if !strings.HasPrefix(text, "json") {
-		return fmt.Errorf("expected json")
+		return errors.Errorf("expected json")
 	}
 	text = text[4:]
 	if err := json.Unmarshal([]byte(text), result); err != nil {
