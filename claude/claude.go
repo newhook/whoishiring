@@ -15,7 +15,11 @@ import (
 
 const (
 	ApiEndpoint = "https://api.anthropic.com/v1/messages"
+	model       = "claude-3-5-sonnet-20240620"
+	transcript  = "claude.json"
 )
+
+var apiKey = os.Getenv("ANTHROPIC_API_KEY")
 
 type Message struct {
 	Role    string `json:"role"`
@@ -45,70 +49,71 @@ type ApiResponse struct {
 	} `json:"usage"`
 }
 
-const model = "claude-3-5-sonnet-20240620"
+func Completions(ctx context.Context, role string, fake bool, t *template.Template, context any) (*ApiResponse, error) {
+	if fake {
+		last, err := readLast(role)
+		if err != nil {
+			return nil, err
+		}
+		return &last.Response, nil
+	}
 
-func Completions(ctx context.Context, file string, call bool, t *template.Template, context any) (*ApiResponse, error) {
 	sb := &strings.Builder{}
 	err := t.Execute(sb, context)
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
-	//fmt.Println(sb.String())
-	var body []byte
-	if call {
-		apiKey := os.Getenv("ANTHROPIC_API_KEY")
-		client := &http.Client{}
 
-		messages := []Message{
-			{Role: "user", Content: sb.String()},
-		}
-
-		requestBody, err := json.Marshal(ApiRequest{
-			Model:     model,
-			MaxTokens: 1024,
-			Messages:  messages,
-		})
-		if err != nil {
-			return nil, err
-		}
-
-		req, err := http.NewRequestWithContext(ctx, "POST", ApiEndpoint, bytes.NewBuffer(requestBody))
-		if err != nil {
-			return nil, err
-		}
-
-		req.Header.Set("Content-Type", "application/json")
-		req.Header.Set("X-API-Key", apiKey)
-		req.Header.Set("anthropic-version", "2023-06-01")
-
-		resp, err := client.Do(req)
-		if err != nil {
-			return nil, err
-		}
-		defer resp.Body.Close()
-
-		body, err = io.ReadAll(resp.Body)
-		if err != nil {
-			return nil, err
-		}
-
-		err = os.WriteFile(file, body, 0644)
-		if err != nil {
-			return nil, err
-		}
-
-	} else {
-		var err error
-		body, err = os.ReadFile(file)
-		if err != nil {
-			return nil, err
-		}
+	client := &http.Client{}
+	messages := []Message{
+		{Role: "user", Content: sb.String()},
 	}
+
+	apiRequest := ApiRequest{
+		Model:     model,
+		MaxTokens: 1024,
+		Messages:  messages,
+	}
+
+	requestBody, err := json.Marshal(apiRequest)
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+
+	req, err := http.NewRequestWithContext(ctx, "POST", ApiEndpoint, bytes.NewBuffer(requestBody))
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-API-Key", apiKey)
+	req.Header.Set("anthropic-version", "2023-06-01")
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+
 	var apiResponse ApiResponse
 	err = json.Unmarshal(body, &apiResponse)
 	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+
+	if err := appendTranscript(RequestResponse{
+		Role:     role,
+		Request:  apiRequest,
+		Response: apiResponse,
+	}); err != nil {
 		return nil, err
 	}
+
 	return &apiResponse, nil
 }
 
@@ -171,4 +176,53 @@ func ParseJsonResponse[T any](choice string, result T) error {
 		return nil
 	}
 	return errors.New("could not parse json response")
+}
+
+type RequestResponse struct {
+	Role     string      `json:"role"`
+	Request  ApiRequest  `json:"request"`
+	Response ApiResponse `json:"response"`
+}
+
+func readLast(role string) (RequestResponse, error) {
+	file, err := os.Open(transcript)
+	if err != nil {
+		return RequestResponse{}, errors.WithStack(err)
+	}
+	defer file.Close()
+
+	decoder := json.NewDecoder(file)
+	var last RequestResponse
+	for decoder.More() {
+		var obj RequestResponse
+		err := decoder.Decode(&obj)
+		if err != nil {
+			return RequestResponse{}, errors.WithStack(err)
+		}
+		if obj.Role == role {
+			last = obj
+		}
+	}
+	return last, nil
+}
+
+func appendTranscript(r RequestResponse) error {
+	b, err := json.Marshal(r)
+	if err != nil {
+		return errors.WithStack(err)
+	}
+	file, err := os.OpenFile(transcript, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	if _, err := file.Write(b); err != nil {
+		return errors.WithStack(err)
+	}
+	if _, err := file.WriteString("\n"); err != nil {
+		return errors.WithStack(err)
+	}
+
+	return nil
 }

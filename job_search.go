@@ -6,6 +6,7 @@ import (
 	"github.com/pkg/errors"
 	"log/slog"
 	"strconv"
+	"time"
 )
 
 func JobSearch(ctx context.Context, l *slog.Logger, months int, jobPrompt string) ([]queries.Item, []queries.Item, error) {
@@ -15,19 +16,21 @@ func JobSearch(ctx context.Context, l *slog.Logger, months int, jobPrompt string
 	}
 
 	limit := 10
-	queryResults, err := VectorSearch(ctx, l, months, embeddingModel, terms, limit)
+	queryResults, err := VectorSearch(ctx, l, months, *embeddingModel, terms, limit)
 	if err != nil {
 		return nil, nil, err
 	}
 
 	type jobDescription struct {
 		ID      int    `json:"id"`
+		Date    string `json:"date"`
 		Content string `json:"content"`
 	}
 	var descriptions []jobDescription
 	for _, result := range queryResults {
 		descriptions = append(descriptions, jobDescription{
 			ID:      result.ID,
+			Date:    time.Unix(int64(result.Item.Time), 0).String(),
 			Content: result.Item.Text,
 		})
 	}

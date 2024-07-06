@@ -16,12 +16,25 @@ The search is done as follows:
 
 The demo supports both openai and claude.
 
-The keys must be set in environment variables: OPENAI_API_KEY, ANTHROPIC_API_KEY
+The keys must be set in environment variables: `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`
 
-To select the models to use in main.go:
+The default embedding model is openai text-embedding-3-small, and the default conversation model is claude.
+
+Select the embedding model:
 
 ```
-embeddingModel  = OpenAI3Small
-completionModel = Claude
+-embedding=openai|nomic-embed-text|gemma:2b|text-embedding-3-small
 ```
+
+Select the completion model:
+```
+-completion=claude|openai
+```
+
+If fake is false, we'll use the last request|response from the LLM.
+
+```
+-fake=true|false
+```
+
 

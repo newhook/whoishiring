@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	_ "embed"
+	"flag"
 	"fmt"
 	"github.com/MatusOllah/slogcolor"
 	"github.com/labstack/echo/v4"
@@ -24,13 +25,8 @@ import (
 )
 
 var (
-	//embeddingModel = "gemma:2b"
-	//embeddingModel = Nomic
-	embeddingModel  = OpenAI3Small
-	completionModel = Claude
-	db              *sql.DB
-	q               *queries.Queries
-
+	db          *sql.DB
+	q           *queries.Queries
 	whoIsHiring = "Ask HN: Who is hiring?%"
 )
 
@@ -44,7 +40,15 @@ var banner string
 //go:embed schema.sql
 var ddl string
 
+var (
+	fake            = flag.Bool("fake", false, "use fake data")
+	completionModel = flag.String("completion", Claude, "completion model")
+	embeddingModel  = flag.String("embedding", OpenAI3Small, "embedding model")
+)
+
 func main() {
+	flag.Parse()
+
 	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer cancel()
 	//l := slog.New(slog.NewJSONHandler(os.Stdout, nil))
@@ -136,6 +140,7 @@ func run(ctx context.Context, l *slog.Logger) error {
 		//ReadTimeout: 30 * time.Second, // customize http.Server timeouts
 	}
 
+	l.Info("using configuration", slog.String("embedding", *embeddingModel), slog.String("completion", *completionModel))
 	l.Info("starting http server", slog.String("addr", ln.Addr().String()))
 	g, ctx := errgroup.WithContext(ctx)
 	g.Go(func() error {

@@ -3,10 +3,13 @@ This is my job search prompt:
 {{.Prompt}}
 
 Evaluate the descriptions and let me know which of the submissions best matches my requirements.
+Prefer newer posts over older ones.
+
 What follows are job descriptions:
 
 {{- range $context := .Jobs}}
 Job ID: {{.ID}}
+Date: {{.Date}}
 
 {{.Content}}
 

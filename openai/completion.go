@@ -13,6 +13,13 @@ import (
 	"text/template"
 )
 
+const transcript = "openai.json"
+const url = "https://api.openai.com/v1/chat/completions"
+
+var (
+	apiKey = os.Getenv("OPENAI_API_KEY")
+)
+
 type Message struct {
 	Role    string `json:"role"`
 	Content string `json:"content"`
@@ -46,72 +53,69 @@ type ChatResponse struct {
 	Usage             Usage    `json:"usage"`
 }
 
-func Completions(ctx context.Context, file string, call bool, t *template.Template, context any) (*ChatResponse, error) {
+func Completions(ctx context.Context, role string, fake bool, t *template.Template, context any) (*ChatResponse, error) {
+	if fake {
+		last, err := readLast(role)
+		if err != nil {
+			return nil, err
+		}
+		return &last.Response, nil
+	}
+
 	sb := &strings.Builder{}
 	err := t.Execute(sb, context)
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
-	//fmt.Println(sb.String())
-	var body []byte
-	if call {
-		url := "https://api.openai.com/v1/chat/completions"
-		token := os.Getenv("OPENAI_API_KEY")
-
-		chatRequest := ChatRequest{
-			Model: "gpt-4o",
-			Messages: []Message{
-				{
-					Role:    "system",
-					Content: "You are job search assistant. Don't explain anything. Provide all results in json",
-				},
-				{
-					Role:    "user",
-					Content: sb.String(),
-				},
+	chatRequest := ChatRequest{
+		Model: "gpt-4o",
+		Messages: []Message{
+			{
+				Role:    "system",
+				Content: "You are job search assistant. Don't explain anything. Provide all results in json",
 			},
-		}
-
-		//fmt.Printf("%+v\n", chatRequest)
-		jsonData, err := json.Marshal(chatRequest)
-		if err != nil {
-			return nil, err
-		}
-
-		req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonData))
-		if err != nil {
-			return nil, err
-		}
-
-		req.Header.Set("Content-Type", "application/json")
-		req.Header.Set("Authorization", "Bearer "+token)
-
-		client := &http.Client{}
-		resp, err := client.Do(req)
-		if err != nil {
-			return nil, err
-		}
-		defer resp.Body.Close()
-
-		body, err = io.ReadAll(resp.Body)
-		if err != nil {
-			return nil, err
-		}
-		err = os.WriteFile(file, body, 0644)
-		if err != nil {
-			return nil, err
-		}
-	} else {
-		var err error
-		body, err = os.ReadFile(file)
-		if err != nil {
-			return nil, err
-		}
+			{
+				Role:    "user",
+				Content: sb.String(),
+			},
+		},
 	}
-	//fmt.Println(string(body))
+
+	jsonData, err := json.Marshal(chatRequest)
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+
+	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewBuffer(jsonData))
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+apiKey)
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
 
 	var cr ChatResponse
 	if err := json.Unmarshal(body, &cr); err != nil {
+		return nil, err
+	}
+
+	if err := appendTranscript(RequestResponse{
+		Role:     role,
+		Request:  chatRequest,
+		Response: cr,
+	}); err != nil {
 		return nil, err
 	}
 
@@ -165,6 +169,7 @@ func parseJsonResponse3[T any](choice Choice, result T) error {
 	}
 	return nil
 }
+
 func ParseJsonResponse[T any](choice Choice, result T) error {
 	if err := parseJsonResponse1(choice, result); err == nil {
 		return nil
@@ -176,4 +181,53 @@ func ParseJsonResponse[T any](choice Choice, result T) error {
 		return nil
 	}
 	return errors.New("could not parse json response")
+}
+
+type RequestResponse struct {
+	Role     string       `json:"role"`
+	Request  ChatRequest  `json:"request"`
+	Response ChatResponse `json:"response"`
+}
+
+func readLast(role string) (RequestResponse, error) {
+	file, err := os.Open(transcript)
+	if err != nil {
+		return RequestResponse{}, errors.WithStack(err)
+	}
+	defer file.Close()
+
+	decoder := json.NewDecoder(file)
+	var last RequestResponse
+	for decoder.More() {
+		var obj RequestResponse
+		err := decoder.Decode(&obj)
+		if err != nil {
+			return RequestResponse{}, errors.WithStack(err)
+		}
+		if obj.Role == role {
+			last = obj
+		}
+	}
+	return last, nil
+}
+
+func appendTranscript(r RequestResponse) error {
+	b, err := json.Marshal(r)
+	if err != nil {
+		return errors.WithStack(err)
+	}
+	file, err := os.OpenFile(transcript, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	if _, err := file.Write(b); err != nil {
+		return errors.WithStack(err)
+	}
+	if _, err := file.WriteString("\n"); err != nil {
+		return errors.WithStack(err)
+	}
+
+	return nil
 }

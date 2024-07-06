@@ -40,7 +40,7 @@ var embeddings = map[string]Embedding{
 }
 
 func GetEmbedding(ctx context.Context, text string) ([]float32, error) {
-	return embeddings[embeddingModel].Embedding(ctx, text)
+	return embeddings[*embeddingModel].Embedding(ctx, text)
 }
 
 func CreateEmbeddings(ctx context.Context, l *slog.Logger, model string) error {

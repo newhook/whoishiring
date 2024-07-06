@@ -36,7 +36,7 @@ var completions = map[string]Completion{
 		Model: Claude,
 		GetTerms: func(ctx context.Context, jobPrompt any) ([]string, error) {
 			var terms []string
-			resp, err := claude.Completions(ctx, "terms_claude.json", true, searchTermsTemplate, jobPrompt)
+			resp, err := claude.Completions(ctx, "terms", *fake, searchTermsTemplate, jobPrompt)
 			if err != nil {
 				return nil, errors.WithStack(err)
 			}
@@ -48,7 +48,7 @@ var completions = map[string]Completion{
 		},
 		GetJobs: func(ctx context.Context, context any) ([]string, error) {
 			var jobIDs []string
-			r2, err := claude.Completions(ctx, "job_claude.json", true, jobSearchTemplate, context)
+			r2, err := claude.Completions(ctx, "job_search", *fake, jobSearchTemplate, context)
 			if err != nil {
 				return nil, errors.WithStack(err)
 			}
@@ -63,7 +63,7 @@ var completions = map[string]Completion{
 		Model: OpenAI,
 		GetTerms: func(ctx context.Context, jobPrompt any) ([]string, error) {
 			var terms []string
-			resp, err := openai.Completions(ctx, "terms.json", true, searchTermsTemplate, jobPrompt)
+			resp, err := openai.Completions(ctx, "terms", *fake, searchTermsTemplate, jobPrompt)
 			if err != nil {
 				return nil, errors.WithStack(err)
 			}
@@ -75,7 +75,7 @@ var completions = map[string]Completion{
 		},
 		GetJobs: func(ctx context.Context, context any) ([]string, error) {
 			var jobIDs []string
-			r2, err := openai.Completions(ctx, "job.json", true, jobSearchTemplate, context)
+			r2, err := openai.Completions(ctx, "job_search", *fake, jobSearchTemplate, context)
 			if err != nil {
 				return nil, errors.WithStack(err)
 			}
@@ -88,9 +88,9 @@ var completions = map[string]Completion{
 }
 
 func GetTerms(ctx context.Context, context any) ([]string, error) {
-	return completions[completionModel].GetTerms(ctx, context)
+	return completions[*completionModel].GetTerms(ctx, context)
 }
 
 func GetJobs(ctx context.Context, context any) ([]string, error) {
-	return completions[completionModel].GetJobs(ctx, context)
+	return completions[*completionModel].GetJobs(ctx, context)
 }
