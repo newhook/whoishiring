@@ -9,14 +9,26 @@ import (
 	"time"
 )
 
-func JobSearch(ctx context.Context, l *slog.Logger, months int, jobPrompt string) ([]queries.Item, []queries.Item, error) {
+func JobSearch(ctx context.Context, l *slog.Logger, months int, searchType string, jobPrompt string) ([]queries.Item, []queries.Item, error) {
+	// search type
+	// - hiring: who is hiring
+	// - seekers: who wants to be hired
+	var clause string
+	if searchType == "hiring" {
+		clause = whoIsHiring
+	} else if searchType == "seekers" {
+		clause = whoWantsToBeHired
+	} else {
+		return nil, nil, errors.Errorf("invalid search type: %s", searchType)
+	}
+
 	terms, err := GetTerms(ctx, jobPrompt)
 	if err != nil {
 		return nil, nil, err
 	}
 
 	limit := 10
-	queryResults, err := VectorSearch(ctx, l, months, *embeddingModel, terms, limit)
+	queryResults, err := VectorSearch(ctx, l, months, *embeddingModel, clause, terms, limit)
 	if err != nil {
 		return nil, nil, err
 	}

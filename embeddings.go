@@ -44,8 +44,18 @@ func GetEmbedding(ctx context.Context, text string) ([]float32, error) {
 }
 
 func CreateEmbeddings(ctx context.Context, l *slog.Logger, model string) error {
+	if err := createEmbeddingsFor(ctx, l, whoIsHiring, model); err != nil {
+		return err
+	}
+	if err := createEmbeddingsFor(ctx, l, whoWantsToBeHired, model); err != nil {
+		return err
+	}
+	return nil
+}
+
+func createEmbeddingsFor(ctx context.Context, l *slog.Logger, clause string, model string) error {
 	q := queries.New(db)
-	posts, err := q.GetItemsWithTitle(ctx, whoIsHiring)
+	posts, err := q.GetItemsWithTitle(ctx, clause)
 	if err != nil {
 		return err
 	}
@@ -75,7 +85,7 @@ func CreateEmbeddings(ctx context.Context, l *slog.Logger, model string) error {
 		}
 	}
 
-	l.Info("creating embeddings", slog.Int("count", len(create)))
+	l.Info("creating embeddings", slog.String("clause", clause), slog.Int("count", len(create)), slog.String("model", model))
 	g, ctx := errgroup.WithContext(ctx)
 	g.SetLimit(10)
 	for _, comment := range create {

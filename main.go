@@ -25,9 +25,10 @@ import (
 )
 
 var (
-	db          *sql.DB
-	q           *queries.Queries
-	whoIsHiring = "Ask HN: Who is hiring?%"
+	db                *sql.DB
+	q                 *queries.Queries
+	whoIsHiring       = "Ask HN: Who is hiring?%"
+	whoWantsToBeHired = "Ask HN: Who wants to be hired?%"
 )
 
 const (
@@ -111,6 +112,7 @@ func run(ctx context.Context, l *slog.Logger) error {
 		// Retrieve the months and prompt parameters from the query string
 		monthsParam := c.QueryParam("months")
 		prompt := c.QueryParam("prompt")
+		searchType := c.QueryParam("type")
 
 		// Convert months from string to int
 		months, err := strconv.Atoi(monthsParam)
@@ -118,7 +120,7 @@ func run(ctx context.Context, l *slog.Logger) error {
 			return c.String(http.StatusBadRequest, "Invalid months parameter")
 		}
 
-		comments, parents, err := JobSearch(c.Request().Context(), l, months, prompt)
+		comments, parents, err := JobSearch(c.Request().Context(), l, months, searchType, prompt)
 		if err != nil {
 			l.Error("job search failed", slog.String("error", err.Error()))
 			return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})

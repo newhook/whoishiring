@@ -19,12 +19,12 @@ type Result struct {
 	Item       queries.Item
 }
 
-func VectorSearch(ctx context.Context, l *slog.Logger, window int, model string, terms []string, limit int) ([]Result, error) {
+func VectorSearch(ctx context.Context, l *slog.Logger, window int, model string, clause string, terms []string, limit int) ([]Result, error) {
 	if window > MaxWindow {
 		window = MaxWindow
 	}
 
-	posts, err := q.GetItemsWithTitle(ctx, whoIsHiring)
+	posts, err := q.GetItemsWithTitle(ctx, clause)
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
