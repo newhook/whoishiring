@@ -1,0 +1,16 @@
+This is my job search prompt:
+
+{{.Prompt}}
+
+Evaluate the descriptions and let me know which of the submissions best matches my requirements.
+What follows are job descriptions:
+
+{{- range $context := .Jobs}}
+Job ID: {{.ID}}
+
+{{.Content}}
+
+{{end}}
+
+Do not include any explanations, only provide a RFC8259 compliant JSON response following this format without deviation.
+["id1", "id2", "id3"]
