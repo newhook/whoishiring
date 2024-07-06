@@ -10,7 +10,7 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	_ "github.com/mattn/go-sqlite3"
-	"github.com/newhook/ai-hack/queries"
+	"github.com/newhook/whoishiring/queries"
 	"github.com/pkg/errors"
 	slogecho "github.com/samber/slog-echo"
 	"golang.org/x/sync/errgroup"

@@ -3,8 +3,8 @@ package main
 import (
 	"context"
 	_ "embed"
-	"github.com/newhook/ai-hack/claude"
-	"github.com/newhook/ai-hack/openai"
+	"github.com/newhook/whoishiring/claude"
+	"github.com/newhook/whoishiring/openai"
 	"github.com/pkg/errors"
 	"text/template"
 )

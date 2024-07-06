@@ -2,8 +2,8 @@ package main
 
 import (
 	"context"
-	"github.com/newhook/ai-hack/hn"
-	"github.com/newhook/ai-hack/queries"
+	"github.com/newhook/whoishiring/hn"
+	"github.com/newhook/whoishiring/queries"
 	"github.com/pkg/errors"
 	"golang.org/x/sync/errgroup"
 	"log/slog"

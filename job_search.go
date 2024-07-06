@@ -2,7 +2,7 @@ package main
 
 import (
 	"context"
-	"github.com/newhook/ai-hack/queries"
+	"github.com/newhook/whoishiring/queries"
 	"github.com/pkg/errors"
 	"log/slog"
 	"strconv"

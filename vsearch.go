@@ -3,7 +3,7 @@ package main
 import (
 	"context"
 	"github.com/lispad/go-generics-tools/binheap"
-	"github.com/newhook/ai-hack/queries"
+	"github.com/newhook/whoishiring/queries"
 	"github.com/pkg/errors"
 	"golang.org/x/sync/errgroup"
 	"log/slog"

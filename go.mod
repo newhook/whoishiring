@@ -1,4 +1,4 @@
-module github.com/newhook/ai-hack
+module github.com/newhook/whoishiring
 
 go 1.22.3
 
