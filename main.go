@@ -51,13 +51,6 @@ var (
 func main() {
 	flag.Parse()
 
-	//resume, err := scrapeLinkedIn(context.Background(), "https://www.linkedin.com/in/matthew-newhook-54a4bb3/")
-	//if err != nil {
-	//	panic(err)
-	//}
-	//fmt.Println(resume)
-	//return
-
 	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer cancel()
 	//l := slog.New(slog.NewJSONHandler(os.Stdout, nil))
@@ -96,7 +89,7 @@ func run(ctx context.Context, l *slog.Logger) error {
 	}
 
 	//if err := PrintTokens(ctx); err != nil {
-	//	panic(err)
+	//	return err
 	//}
 
 	e := echo.New()

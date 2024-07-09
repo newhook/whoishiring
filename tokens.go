@@ -19,16 +19,19 @@ func PrintTokens(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	for _, post := range posts {
-		comments, err := q.GetItemsForParent(ctx, post.ID)
+	total := 0
+	for _, post := range posts[:MaxWindow] {
+		children, err := q.GetItemsForParent(ctx, post.ID)
 		if err != nil {
 			return err
 		}
-		for _, c := range comments {
+		for _, c := range children {
 			// encode
 			token := tke.Encode(c.Text, nil, nil)
-			fmt.Println(c.ID, "has", len(token), "tokens")
+			total += len(token)
+			//fmt.Println(c.ID, "has", len(token), "tokens")
 		}
 	}
+	fmt.Println("total tokens", total)
 	return nil
 }

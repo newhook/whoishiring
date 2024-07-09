@@ -217,7 +217,7 @@ const JobSearchApp = () => {
   );
 
   return (
-      <div className="p-4 max-w-2xl mx-auto bg-hn-background min-h-screen">
+      <div className="p-4 max-w-6xl mx-auto bg-hn-background min-h-screen">
         <h1 className="text-3xl font-bold mb-8 text-center text-hn-orange">Job Search Application</h1>
         <Tabs defaultValue="hiring" className="w-full">
           <TabsList className="grid w-full grid-cols-2 bg-hn-orange">

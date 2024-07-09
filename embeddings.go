@@ -7,9 +7,9 @@ import (
 	"github.com/newhook/whoishiring/ollama"
 	"github.com/newhook/whoishiring/openai"
 	"github.com/newhook/whoishiring/queries"
+	"github.com/newhook/whoishiring/voyageai"
 	"golang.org/x/sync/errgroup"
 	"log/slog"
-	"os"
 	"time"
 )
 
@@ -22,6 +22,7 @@ const (
 	Nomic        = "nomic-embed-text"
 	Gemma        = "gemma:2b"
 	OpenAI3Small = string(openai.EmbeddingModelOpenAI3Small)
+	VoyagerAI    = string(voyageai.Voyage2Model)
 )
 
 var embeddings = map[string]Embedding{
@@ -35,7 +36,11 @@ var embeddings = map[string]Embedding{
 	},
 	OpenAI3Small: {
 		Model:     OpenAI3Small,
-		Embedding: openai.Embedding(os.Getenv("OPENAI_API_KEY"), openai.EmbeddingModelOpenAI(OpenAI3Small)),
+		Embedding: openai.Embedding(openai.EmbeddingModelOpenAI(OpenAI3Small)),
+	},
+	VoyagerAI: {
+		Model:     VoyagerAI,
+		Embedding: voyageai.Embedding(voyageai.Voyage2Model),
 	},
 }
 
