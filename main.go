@@ -14,6 +14,7 @@ import (
 	"github.com/pkg/errors"
 	slogecho "github.com/samber/slog-echo"
 	"golang.org/x/sync/errgroup"
+	"log"
 	"log/slog"
 	"net"
 	"net/http"
@@ -49,6 +50,13 @@ var (
 
 func main() {
 	flag.Parse()
+
+	//resume, err := scrapeLinkedIn(context.Background(), "https://www.linkedin.com/in/matthew-newhook-54a4bb3/")
+	//if err != nil {
+	//	panic(err)
+	//}
+	//fmt.Println(resume)
+	//return
 
 	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer cancel()
@@ -108,19 +116,53 @@ func run(ctx context.Context, l *slog.Logger) error {
 		AllowHeaders: []string{echo.HeaderOrigin, echo.HeaderContentType, echo.HeaderAccept},
 	}))
 
-	e.GET("/jobs", func(c echo.Context) error {
-		// Retrieve the months and prompt parameters from the query string
-		monthsParam := c.QueryParam("months")
-		prompt := c.QueryParam("prompt")
-		searchType := c.QueryParam("type")
+	e.POST("/jobs", func(c echo.Context) error {
+		if err := c.Request().ParseMultipartForm(32 << 20); err != nil { // 32 MB max memory
+			return err
+		}
 
-		// Convert months from string to int
-		months, err := strconv.Atoi(monthsParam)
+		monthsParam := c.FormValue("months")
+		prompt := c.FormValue("prompt")
+		searchType := c.FormValue("type")
+		linkedin := c.FormValue("linkedin")
+		form, err := c.MultipartForm()
+		if err != nil {
+			log.Println(err.Error())
+			return err
+		}
+		var terms SearchTerms
+		for _, files := range form.File {
+			if len(files) != 1 {
+				return c.String(http.StatusBadRequest, "Invalid number of files")
+			}
+			file := files[0]
+
+			f, err := file.Open()
+			if err != nil {
+				return err
+			}
+			defer f.Close()
+
+			terms.ResumeName = file.Filename
+			terms.Resume = f
+			terms.Size = file.Size
+		}
+
+		terms.Months, err = strconv.Atoi(monthsParam)
 		if err != nil {
 			return c.String(http.StatusBadRequest, "Invalid months parameter")
 		}
 
-		comments, parents, err := JobSearch(c.Request().Context(), l, months, searchType, prompt)
+		terms.LinkedIn = linkedin
+		terms.JobPrompt = prompt
+
+		if searchType == "hiring" {
+			terms.SearchType = SearchType_WhoIsHiring
+		} else if searchType == "seekers" {
+			terms.SearchType = SearchType_WhoWantToBeHired
+		}
+
+		comments, parents, err := JobSearch(c.Request().Context(), l, terms)
 		if err != nil {
 			l.Error("job search failed", slog.String("error", err.Error()))
 			return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})

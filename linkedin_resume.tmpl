@@ -1,0 +1,51 @@
+Name: {{.full_name}}
+
+Occupation: {{.occupation}}
+
+Address:
+{{.city}}
+{{.state}}
+{{.country_full_name}}
+
+{{.summary}}
+
+Experience:
+
+{{range .experiences}}
+Dates: {{ .starts_at.day }} / {{ .starts_at.month }} / {{ .starts_at.year }} - {{ .ends_at.day }} / {{ .ends_at.month }} / {{ .ends_at.year }}
+Title: {{.title}}
+Company: {{.company}}
+{{ if .location }}
+Location: {{.location}}
+{{end}}
+{{ if .description }}
+Description: {{.description}}
+{{end}}
+{{end}}
+
+{{ if gt (len .skills) 0 }}
+Skills:
+{{range .skills}}
+{{.name}}
+{{.title}}
+{{.company}}
+{{.location}}
+{{.start_date}} - {{.end_date}}
+{{.description}}
+{{end}}
+{{end}}
+
+{{ if gt (len .education) 0 }}
+Education:
+{{range .education}}
+{{ .starts_at.day }} / {{ .starts_at.month }} / {{ .starts_at.year }} - {{ .ends_at.day }} / {{ .ends_at.month }} / {{ .ends_at.year }}
+Degree: {{.degree}}
+School: {{.school}}
+{{ if .location }}
+Location: {{.location}}
+{{end}}
+{{if .description }}
+Description: {{.description}}
+{{end}}
+{{end}}
+{{end}}

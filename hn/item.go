@@ -3,6 +3,7 @@ package hn
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -46,6 +47,10 @@ func GetUser(ctx context.Context, user string) (*User, error) {
 	}
 	defer resp.Body.Close()
 
+	if resp.StatusCode != http.StatusOK {
+		return nil, errors.New("error response from the embedding API: " + resp.Status)
+	}
+
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, err
@@ -70,10 +75,11 @@ func GetItem(ctx context.Context, id int) (Item, error) {
 	if err != nil {
 		return Item{}, err
 	}
-	if err != nil {
-		return Item{}, err
-	}
 	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return Item{}, errors.New("error response from the embedding API: " + resp.Status)
+	}
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {

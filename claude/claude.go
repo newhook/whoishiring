@@ -64,7 +64,6 @@ func Completions(ctx context.Context, role string, fake bool, t *template.Templa
 		return nil, errors.WithStack(err)
 	}
 
-	client := &http.Client{}
 	messages := []Message{
 		{Role: "user", Content: sb.String()},
 	}
@@ -89,11 +88,15 @@ func Completions(ctx context.Context, role string, fake bool, t *template.Templa
 	req.Header.Set("X-API-Key", apiKey)
 	req.Header.Set("anthropic-version", "2023-06-01")
 
-	resp, err := client.Do(req)
+	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
 	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, errors.New("error response from the embedding API: " + resp.Status)
+	}
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {

@@ -15,15 +15,20 @@ var jobSearchPrompt string
 //go:embed prompts/search_terms.tmpl
 var searchTermsPrompt string
 
+//go:embed prompts/analyze_resume.tmpl
+var analyzeResumePrompt string
+
 var (
-	searchTermsTemplate = template.Must(template.New("search_terms").Parse(searchTermsPrompt))
-	jobSearchTemplate   = template.Must(template.New("jobSearch").Parse(jobSearchPrompt))
+	analyzeResumeTemplate = template.Must(template.New("analyze_resume").Parse(analyzeResumePrompt))
+	searchTermsTemplate   = template.Must(template.New("search_terms").Parse(searchTermsPrompt))
+	jobSearchTemplate     = template.Must(template.New("jobSearch").Parse(jobSearchPrompt))
 )
 
 type Completion struct {
-	Model    string
-	GetTerms func(ctx context.Context, context any) ([]string, error)
-	GetJobs  func(ctx context.Context, context any) ([]string, error)
+	Model         string
+	AnalyzeResume func(ctx context.Context, context any) (string, error)
+	GetTerms      func(ctx context.Context, context any) ([]string, error)
+	GetJobs       func(ctx context.Context, context any) ([]string, error)
 }
 
 const (
@@ -34,9 +39,21 @@ const (
 var completions = map[string]Completion{
 	Claude: {
 		Model: Claude,
-		GetTerms: func(ctx context.Context, jobPrompt any) ([]string, error) {
+		AnalyzeResume: func(ctx context.Context, context any) (string, error) {
+			var term string
+			resp, err := claude.Completions(ctx, "resume", *fake, analyzeResumeTemplate, context)
+			if err != nil {
+				return "", errors.WithStack(err)
+			}
+			choice := resp.Content[len(resp.Content)-1]
+			if err := claude.ParseJsonResponse(choice.Text, &term); err != nil {
+				return "", errors.WithStack(err)
+			}
+			return term, nil
+		},
+		GetTerms: func(ctx context.Context, context any) ([]string, error) {
 			var terms []string
-			resp, err := claude.Completions(ctx, "terms", *fake, searchTermsTemplate, jobPrompt)
+			resp, err := claude.Completions(ctx, "terms", *fake, searchTermsTemplate, context)
 			if err != nil {
 				return nil, errors.WithStack(err)
 			}
@@ -61,9 +78,21 @@ var completions = map[string]Completion{
 	},
 	OpenAI: {
 		Model: OpenAI,
-		GetTerms: func(ctx context.Context, jobPrompt any) ([]string, error) {
+		AnalyzeResume: func(ctx context.Context, context any) (string, error) {
+			var term string
+			resp, err := openai.Completions(ctx, "terms", *fake, analyzeResumeTemplate, context)
+			if err != nil {
+				return "", errors.WithStack(err)
+			}
+			choice := resp.Choices[len(resp.Choices)-1]
+			if err := openai.ParseJsonResponse(choice, &term); err != nil {
+				return "", errors.WithStack(err)
+			}
+			return term, nil
+		},
+		GetTerms: func(ctx context.Context, context any) ([]string, error) {
 			var terms []string
-			resp, err := openai.Completions(ctx, "terms", *fake, searchTermsTemplate, jobPrompt)
+			resp, err := openai.Completions(ctx, "terms", *fake, searchTermsTemplate, context)
 			if err != nil {
 				return nil, errors.WithStack(err)
 			}
@@ -85,6 +114,10 @@ var completions = map[string]Completion{
 			return jobIDs, nil
 		},
 	},
+}
+
+func AnalyzeResume(ctx context.Context, context any) (string, error) {
+	return completions[*completionModel].AnalyzeResume(ctx, context)
 }
 
 func GetTerms(ctx context.Context, context any) ([]string, error) {

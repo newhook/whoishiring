@@ -32,8 +32,6 @@ func Embedding(model string, baseURLOllama string) func(ctx context.Context, tex
 	// We don't set a default timeout here, although it's usually a good idea.
 	// In our case though, the library user can set the timeout on the context,
 	// and it might have to be a long timeout, depending on the text length.
-	client := &http.Client{}
-
 	var checkedNormalized bool
 	checkNormalized := sync.Once{}
 
@@ -56,7 +54,7 @@ func Embedding(model string, baseURLOllama string) func(ctx context.Context, tex
 		req.Header.Set("Content-Type", "application/json")
 
 		// Send the request.
-		resp, err := client.Do(req)
+		resp, err := http.DefaultClient.Do(req)
 		if err != nil {
 			return nil, fmt.Errorf("couldn't send request: %w", err)
 		}

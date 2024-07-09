@@ -29,11 +29,6 @@ type openAIResponse struct {
 }
 
 func Embedding(apiKey string, model EmbeddingModelOpenAI) func(ctx context.Context, text string) ([]float32, error) {
-	// We don't set a default timeout here, although it's usually a good idea.
-	// In our case though, the library user can set the timeout on the context,
-	// and it might have to be a long timeout, depending on the text length.
-	client := &http.Client{}
-
 	var checkedNormalized bool
 	checkNormalized := sync.Once{}
 
@@ -58,7 +53,7 @@ func Embedding(apiKey string, model EmbeddingModelOpenAI) func(ctx context.Conte
 		req.Header.Set("Authorization", "Bearer "+apiKey)
 
 		// Send the request.
-		resp, err := client.Do(req)
+		resp, err := http.DefaultClient.Do(req)
 		if err != nil {
 			return nil, fmt.Errorf("couldn't send request: %w", err)
 		}
