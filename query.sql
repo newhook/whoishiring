@@ -50,3 +50,9 @@ INSERT INTO item_kids (item_id, kid_id) VALUES (?, ?);
 
 -- name: InsertItemParts :exec
 INSERT INTO item_parts (item_id, part_id) VALUES (?, ?);
+
+-- name: GetLinkedInScrape :one
+select * from linkedin_scrapes where url = ?;
+
+-- name: InsertLinkedInScrape :exec
+INSERT INTO linkedin_scrapes (url, json, created_at, updated_at) VALUES (?, ?, ?, ?);

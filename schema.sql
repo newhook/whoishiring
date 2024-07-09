@@ -40,3 +40,10 @@ CREATE TABLE IF NOT EXISTS item_parts (
 );
 
 CREATE INDEX IF NOT EXISTS idx_item_parents_item_id ON item_parts(item_id);
+
+CREATE TABLE IF NOT EXISTS linkedin_scrapes (
+    url text PRIMARY KEY NOT NULL,
+    json text NOT NULL,
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL
+);

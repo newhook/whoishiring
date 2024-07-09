@@ -317,6 +317,22 @@ func (q *Queries) GetKidsForItems(ctx context.Context, ids []int) ([]ItemKid, er
 	return items, nil
 }
 
+const getLinkedInScrape = `-- name: GetLinkedInScrape :one
+select url, json, created_at, updated_at from linkedin_scrapes where url = ?
+`
+
+func (q *Queries) GetLinkedInScrape(ctx context.Context, url string) (LinkedinScrape, error) {
+	row := q.db.QueryRowContext(ctx, getLinkedInScrape, url)
+	var i LinkedinScrape
+	err := row.Scan(
+		&i.Url,
+		&i.Json,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
 const getPosts = `-- name: GetPosts :many
 select id, deleted, type, "by", time, text, dead, parent, poll, url, score, title, descendants from items where parent is null order by id desc
 `
@@ -453,6 +469,27 @@ type InsertItemPartsParams struct {
 
 func (q *Queries) InsertItemParts(ctx context.Context, arg InsertItemPartsParams) error {
 	_, err := q.db.ExecContext(ctx, insertItemParts, arg.ItemID, arg.PartID)
+	return err
+}
+
+const insertLinkedInScrape = `-- name: InsertLinkedInScrape :exec
+INSERT INTO linkedin_scrapes (url, json, created_at, updated_at) VALUES (?, ?, ?, ?)
+`
+
+type InsertLinkedInScrapeParams struct {
+	Url       string `json:"url"`
+	Json      string `json:"json"`
+	CreatedAt int    `json:"created_at"`
+	UpdatedAt int    `json:"updated_at"`
+}
+
+func (q *Queries) InsertLinkedInScrape(ctx context.Context, arg InsertLinkedInScrapeParams) error {
+	_, err := q.db.ExecContext(ctx, insertLinkedInScrape,
+		arg.Url,
+		arg.Json,
+		arg.CreatedAt,
+		arg.UpdatedAt,
+	)
 	return err
 }
 

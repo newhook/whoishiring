@@ -54,7 +54,7 @@ func JobSearch(ctx context.Context, l *slog.Logger, search SearchTerms) ([]queri
 	resume := ""
 	if search.LinkedIn != "" {
 		var err error
-		resume, err = scrapeLinkedIn(ctx, search.LinkedIn)
+		resume, err = scrapeLinkedIn(ctx, q, search.LinkedIn)
 		if err != nil {
 			return nil, nil, err
 		}

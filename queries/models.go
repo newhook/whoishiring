@@ -38,3 +38,10 @@ type ItemPart struct {
 	ItemID int `json:"item_id"`
 	PartID int `json:"part_id"`
 }
+
+type LinkedinScrape struct {
+	Url       string `json:"url"`
+	Json      string `json:"json"`
+	CreatedAt int    `json:"created_at"`
+	UpdatedAt int    `json:"updated_at"`
+}
