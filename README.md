@@ -62,3 +62,5 @@ Use cached results (for testing):
 
 # Credits
 The openai and ollama embeddings code and vector operations come from https://github.com/philippgille/chromem-go.
+
+The react app was almost entirely written by Claude. Artifacts are amazing!
