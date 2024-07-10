@@ -168,6 +168,16 @@ func parseJsonResponse3[T any](choice string, result T) error {
 	}
 	return nil
 }
+func parseJsonResponse4[T any](choice string, result T) error {
+	var response struct {
+		Content T `json:"search_text"`
+	}
+	if err := json.Unmarshal([]byte(choice), &response); err != nil {
+		return err
+	}
+	result = response.Content
+	return nil
+}
 func ParseJsonResponse[T any](choice string, result T) error {
 	if err := parseJsonResponse1(choice, result); err == nil {
 		return nil
@@ -176,6 +186,9 @@ func ParseJsonResponse[T any](choice string, result T) error {
 		return nil
 	}
 	if err := parseJsonResponse3(choice, result); err == nil {
+		return nil
+	}
+	if err := parseJsonResponse4(choice, result); err == nil {
 		return nil
 	}
 	return errors.New("could not parse json response")

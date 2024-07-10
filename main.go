@@ -155,14 +155,26 @@ func run(ctx context.Context, l *slog.Logger) error {
 			terms.SearchType = SearchType_WhoWantToBeHired
 		}
 
-		comments, parents, err := JobSearch(c.Request().Context(), l, terms)
+		resp, err := JobSearch(c.Request().Context(), l, terms)
 		if err != nil {
 			l.Error("job search failed", slog.String("error", err.Error()))
 			return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
 		}
+		var links []string
+		for _, id := range resp.Comments {
+			links = append(links, fmt.Sprintf("https://news.ycombinator.com/item?id=%d", id))
+		}
 		return c.JSON(http.StatusOK, map[string]any{
-			"comments": comments,
-			"parents":  parents,
+			"comments":          resp.Comments,
+			"parents":           resp.Parents,
+			"items":             resp.Items,
+			"original_comments": resp.OriginalComments,
+			"original_parents":  resp.OriginalParents,
+			"hackerNewsLinks":   links,
+			"resumeSummary":     resp.ResumeSummary,
+			"searchTerms":       resp.SearchTerms,
+			"posts":             resp.Posts,
+			"itemsSearched":     resp.ItemsSearched,
 		})
 	})
 

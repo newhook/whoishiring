@@ -40,7 +40,21 @@ type SearchTerms struct {
 	Size       int64
 }
 
-func JobSearch(ctx context.Context, l *slog.Logger, search SearchTerms) ([]queries.Item, []queries.Item, error) {
+type JobSearchResponse struct {
+	Items            []queries.Item
+	Comments         []int
+	Parents          []int
+	HNLinks          []string
+	ResumeSummary    string
+	SearchTerms      []string
+	Posts            int
+	ItemsSearched    int
+	OriginalComments []int
+	OriginalParents  []int
+}
+
+func JobSearch(ctx context.Context, l *slog.Logger, search SearchTerms) (JobSearchResponse, error) {
+	var resp JobSearchResponse
 	var clause string
 	switch search.SearchType {
 	case SearchType_WhoIsHiring:
@@ -48,7 +62,7 @@ func JobSearch(ctx context.Context, l *slog.Logger, search SearchTerms) ([]queri
 	case SearchType_WhoWantToBeHired:
 		clause = whoWantsToBeHired
 	default:
-		return nil, nil, errors.Errorf("invalid search type: %s", search.SearchType)
+		return resp, errors.Errorf("invalid search type: %s", search.SearchType)
 	}
 
 	resume := ""
@@ -56,22 +70,22 @@ func JobSearch(ctx context.Context, l *slog.Logger, search SearchTerms) ([]queri
 		var err error
 		resume, err = scrapeLinkedIn(ctx, q, search.LinkedIn)
 		if err != nil {
-			return nil, nil, err
+			return resp, err
 		}
 	} else if search.Resume != nil && strings.HasSuffix(search.ResumeName, "pdf") {
 		file, err := os.CreateTemp("", "*.pdf")
 		if err != nil {
-			return nil, nil, errors.WithStack(err)
+			return resp, errors.WithStack(err)
 		}
 		defer os.Remove(file.Name())
 		f, err := os.OpenFile(file.Name(), os.O_RDWR, 0644)
 		if err != nil {
-			return nil, nil, errors.WithStack(err)
+			return resp, errors.WithStack(err)
 		}
 		defer f.Close()
 		_, err = io.Copy(f, search.Resume)
 		if err != nil {
-			return nil, nil, errors.WithStack(err)
+			return resp, errors.WithStack(err)
 		}
 
 		// See "man pdftotext" for more options.
@@ -87,14 +101,14 @@ func JobSearch(ctx context.Context, l *slog.Logger, search SearchTerms) ([]queri
 		cmd.Stdout = &buf
 
 		if err := cmd.Run(); err != nil {
-			return nil, nil, errors.WithStack(err)
+			return resp, errors.WithStack(err)
 		}
 
 		resume = buf.String()
 	} else if search.Resume != nil {
 		b, err := io.ReadAll(search.Resume)
 		if err != nil {
-			return nil, nil, errors.WithStack(err)
+			return resp, errors.WithStack(err)
 		}
 		resume = string(b)
 	}
@@ -102,8 +116,9 @@ func JobSearch(ctx context.Context, l *slog.Logger, search SearchTerms) ([]queri
 	if len(resume) > 0 {
 		analyze, err := AnalyzeResume(ctx, resume)
 		if err != nil {
-			return nil, nil, err
+			return resp, err
 		}
+		resp.ResumeSummary = analyze
 		if search.JobPrompt != "" {
 			search.JobPrompt = fmt.Sprintf("%s\nIn addition consider the following %s", search.JobPrompt, analyze)
 		} else {
@@ -113,13 +128,21 @@ func JobSearch(ctx context.Context, l *slog.Logger, search SearchTerms) ([]queri
 
 	terms, err := GetTerms(ctx, search.JobPrompt)
 	if err != nil {
-		return nil, nil, err
+		return resp, err
 	}
+	resp.SearchTerms = terms
 
 	limit := 10
 	queryResults, err := VectorSearch(ctx, l, search.Months, *embeddingModel, clause, terms, limit)
 	if err != nil {
-		return nil, nil, err
+		return resp, err
+	}
+	resp.ItemsSearched = queryResults.Searched
+	resp.Posts = queryResults.Posts
+
+	for _, result := range queryResults.Results {
+		resp.OriginalComments = append(resp.OriginalComments, result.Item.ID)
+		resp.OriginalParents = append(resp.OriginalParents, result.Item.Parent)
 	}
 
 	type jobDescription struct {
@@ -128,7 +151,7 @@ func JobSearch(ctx context.Context, l *slog.Logger, search SearchTerms) ([]queri
 		Content string `json:"content"`
 	}
 	var descriptions []jobDescription
-	for _, result := range queryResults {
+	for _, result := range queryResults.Results {
 		descriptions = append(descriptions, jobDescription{
 			ID:      result.ID,
 			Date:    time.Unix(int64(result.Item.Time), 0).String(),
@@ -141,43 +164,36 @@ func JobSearch(ctx context.Context, l *slog.Logger, search SearchTerms) ([]queri
 		"Jobs":   descriptions,
 	})
 	if err != nil {
-		return nil, nil, err
+		return resp, err
 	}
 
 	// The comments must be contained in the original query results.
-	var comments []queries.Item
 	for _, id := range jobIDs {
 		n, err := strconv.Atoi(id)
 		if err != nil {
-			return nil, nil, err
+			return resp, err
 		}
-		for _, result := range queryResults {
+		for _, result := range queryResults.Results {
 			if result.ID == n {
-				comments = append(comments, result.Item)
+				resp.Comments = append(resp.Comments, result.Item.ID)
+				resp.Parents = append(resp.Parents, result.Item.Parent)
 				break
 			}
 		}
 	}
 
 	parentSet := NewSet[int]()
-	for _, comment := range comments {
-		parentSet.Add(comment.Parent)
+	for _, result := range queryResults.Results {
+		parentSet.Add(result.Item.Parent)
+		resp.Items = append(resp.Items, result.Item)
 	}
+
 	allParents, err := q.GetItems(ctx, parentSet.Values())
 	if err != nil {
-		return nil, nil, errors.WithStack(err)
+		return resp, errors.WithStack(err)
 	}
-	var parents []queries.Item
-	for _, comment := range comments {
-		for _, parent := range allParents {
-			if comment.Parent == parent.ID {
-				parents = append(parents, parent)
-				break
-			}
-		}
+	for _, parent := range allParents {
+		resp.Items = append(resp.Items, parent)
 	}
-	if len(comments) != len(parents) {
-		return nil, nil, errors.Errorf("mismatched comments and parents")
-	}
-	return comments, parents, nil
+	return resp, nil
 }

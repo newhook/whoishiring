@@ -9,6 +9,7 @@ import (
 	"log/slog"
 	"sort"
 	"sync"
+	"sync/atomic"
 	"time"
 )
 
@@ -19,37 +20,47 @@ type Result struct {
 	Item       queries.Item
 }
 
-func VectorSearch(ctx context.Context, l *slog.Logger, window int, model string, clause string, terms []string, limit int) ([]Result, error) {
+type VectorSearchResponse struct {
+	Results []Result
+
+	Posts    int
+	Searched int
+}
+
+func VectorSearch(ctx context.Context, l *slog.Logger, window int, model string, clause string, terms []string, limit int) (VectorSearchResponse, error) {
+	var resp VectorSearchResponse
 	if window > MaxWindow {
 		window = MaxWindow
 	}
 
 	posts, err := q.GetItemsWithTitle(ctx, clause)
 	if err != nil {
-		return nil, errors.WithStack(err)
+		return resp, errors.WithStack(err)
 	}
+	resp.Posts = len(posts)
 
 	termVectors := make([][]float32, len(terms))
 	for i, term := range terms {
 		termVectors[i], err = GetEmbedding(ctx, term)
 		if err != nil {
-			return nil, errors.Wrapf(err, "couldn't create embedding of query")
+			return resp, errors.Wrapf(err, "couldn't create embedding of query")
 		}
 	}
 
 	start := time.Now()
-	results, err := searchPosts(ctx, limit, termVectors, posts[:window], model, terms)
+	results, searched, err := searchPosts(ctx, limit, termVectors, posts[:window], model, terms)
 	if err != nil {
-		return nil, err
+		return resp, err
 	}
 	l.Info("results", slog.Int("results", len(results)), slog.Duration("in", time.Since(start)))
+	resp.Searched = searched
 
 	results = deduplicateResults(results)
 	l.Info("after deduplicating", slog.Int("results", len(results)))
 
 	results, err = removeSimilarPosts(ctx, l, q, model, results)
 	if err != nil {
-		return nil, errors.WithStack(err)
+		return resp, errors.WithStack(err)
 	}
 	l.Info("after removing similar posts", slog.Int("results", len(results)))
 
@@ -60,15 +71,17 @@ func VectorSearch(ctx context.Context, l *slog.Logger, window int, model string,
 	for _, result := range results {
 		l.Info("result", slog.Int("id", result.ID), slog.Float64("similarity", float64(result.Similarity)), slog.String("term", result.Term))
 	}
-	return results, nil
+	resp.Results = results
+	return resp, nil
 }
 
-func searchPosts(ctx context.Context, limit int, termVectors [][]float32, posts []queries.Item, model string, terms []string) ([]Result, error) {
+func searchPosts(ctx context.Context, limit int, termVectors [][]float32, posts []queries.Item, model string, terms []string) ([]Result, int, error) {
 	var mutex sync.Mutex
 	h := binheap.EmptyTopNHeap[Result](limit*len(termVectors), func(i, j Result) bool {
 		return i.Similarity > j.Similarity
 	})
 
+	var searched int64
 	g, ctx := errgroup.WithContext(ctx)
 	g.SetLimit(5)
 	for _, post := range posts {
@@ -84,6 +97,7 @@ func searchPosts(ctx context.Context, limit int, termVectors [][]float32, posts 
 				if embedding.Embedding == nil {
 					continue
 				}
+				atomic.AddInt64(&searched, 1)
 				ev, err := UnmarshalFloat32ArrayWithLength(embedding.Embedding)
 				if err != nil {
 					return errors.WithStack(err)
@@ -107,9 +121,9 @@ func searchPosts(ctx context.Context, limit int, termVectors [][]float32, posts 
 		})
 	}
 	if err := g.Wait(); err != nil {
-		return nil, err
+		return nil, 0, err
 	}
-	return h.PopTopN(), nil
+	return h.PopTopN(), int(searched), nil
 }
 
 func dotProduct(a, b []float32) (float32, error) {

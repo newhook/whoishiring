@@ -7,9 +7,7 @@ import { Alert, AlertDescription } from './components/ui/alert';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "./components/ui/collapsible"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./components/ui/tabs"
 import { RadioGroup, RadioGroupItem } from './components/ui/radio-group';
-import { ChevronDown, ChevronUp } from 'lucide-react';
-import { Upload, Linkedin } from 'lucide-react';
-import { Star } from 'lucide-react';
+import { ChevronDown, ChevronUp, Upload, Linkedin, ExternalLink, Star } from 'lucide-react';
 
 
 interface Item {
@@ -60,20 +58,8 @@ const JobSearchApp = () => {
   const [fileError, setFileError] = useState('');
   const [isAdvancedOpen, setIsAdvancedOpen] = useState(false);
   const [profileOption, setProfileOption] = useState('resume');
-
-  // TODO: what is event?
-  const handleFileChange = (event: any) => {
-    const selectedFile = event.target.files[0];
-    if (selectedFile) {
-      if (selectedFile.type === 'application/pdf' || selectedFile.type === 'text/plain') {
-        setResumeFile(selectedFile);
-        setFileError('');
-      } else {
-        setResumeFile(null);
-        setFileError('Please upload only PDF or text files.');
-      }
-    }
-  };
+  const [searchDetails, setSearchDetails] = useState<SearchDetails | null>(null);
+  const [isSearchDetailsOpen, setIsSearchDetailsOpen] = useState(false);
 
   const searchJobs = async (searchType: string) => {
     setLoading(true);
@@ -94,8 +80,17 @@ const JobSearchApp = () => {
         body: formData,
       });
       const data = await response.json();
-      setResults(data.comments || []);
-      setParents(data.parents || []);
+      console.log(data)
+      const items = data.items || [];
+      setResults((data.comments || []).map((id: number) => items.find((item: Item) => item.id === id)));
+      setParents((data.parents || []).map((id: number) => items.find((item: Item) => item.id === id)));
+      setSearchDetails({
+        hackerNewsLinks: data.hackerNewsLinks || [],
+        resumeSummary: data.resumeSummary || "",
+        searchTerms: data.searchTerms || [],
+        posts: data.posts || 0,
+        itemsSearched: data.itemsSearched || 0,
+      });
     } catch (error) {
       console.error('Error fetching jobs:', error);
       setResults([]);
@@ -220,6 +215,97 @@ const JobSearchApp = () => {
       </div>
   );
 
+  interface SearchDetails {
+    hackerNewsLinks: string[];
+    resumeSummary: string;
+    searchTerms: string[];
+    posts: number;
+    itemsSearched: number;
+  }
+
+  const SearchDetailsSection = () => {
+    if (!searchDetails) return null;
+
+    return (
+        <Collapsible
+            open={isSearchDetailsOpen}
+            onOpenChange={setIsSearchDetailsOpen}
+            className="mt-8 space-y-4"
+        >
+          <CollapsibleTrigger asChild>
+            <Button
+                variant="outline"
+                className="flex items-center justify-between w-full"
+            >
+              <span>Search Details</span>
+              {isSearchDetailsOpen ? (
+                  <ChevronUp className="h-4 w-4" />
+              ) : (
+                  <ChevronDown className="h-4 w-4" />
+              )}
+            </Button>
+          </CollapsibleTrigger>
+          <CollapsibleContent className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Hacker News Links</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ul className="list-disc list-inside">
+                  {searchDetails.hackerNewsLinks.map((link, index) => (
+                      <li key={index} className="flex items-center">
+                        <a href={link} target="_blank" rel="noopener noreferrer" className="text-hn-orange hover:underline">
+                          {link}
+                        </a>
+                        <ExternalLink className="ml-2 h-4 w-4 text-hn-text" />
+                      </li>
+                  ))}
+                </ul>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Resume Summary</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-hn-text whitespace-pre-wrap">{searchDetails.resumeSummary}</p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Search Terms</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex flex-wrap gap-2">
+                  {searchDetails.searchTerms.map((keyword, index) => (
+                      <span key={index} className="bg-hn-text text-white px-2 py-1 rounded-full text-sm">
+                    {keyword}
+                  </span>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Search Statistics</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-hn-text">
+                  Total Posts: <span className="font-bold">{searchDetails.posts}</span>
+                </p>
+                <p className="text-hn-text">
+                  Items Searched: <span className="font-bold">{searchDetails.itemsSearched}</span>
+                </p>
+              </CardContent>
+            </Card>
+          </CollapsibleContent>
+        </Collapsible>
+    );
+  };
+
   return (
       <div className="p-4 max-w-6xl mx-auto bg-hn-background min-h-screen font-sans text-hn-base">
         <h1 className="text-hn-large font-bold mb-8 text-center text-hn-orange">Job Search Application</h1>
@@ -247,6 +333,7 @@ const JobSearchApp = () => {
             </Card>
           </TabsContent>
         </Tabs>
+        {searchDetails && <SearchDetailsSection />}
         <div className="mt-8">
           <h2 className="text-xl font-semibold mb-4 text-hn-text">Search Results</h2>
           {results.map((item, index) => (
