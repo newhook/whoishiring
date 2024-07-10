@@ -23,8 +23,10 @@ type Result struct {
 type VectorSearchResponse struct {
 	Results []Result
 
-	Posts    int
-	Searched int
+	TotalPosts int
+	TotalItems int
+	Posts      int
+	Searched   int
 }
 
 func VectorSearch(ctx context.Context, l *slog.Logger, window int, model string, clause string, terms []string, limit int) (VectorSearchResponse, error) {
@@ -38,6 +40,17 @@ func VectorSearch(ctx context.Context, l *slog.Logger, window int, model string,
 		return resp, errors.WithStack(err)
 	}
 	resp.Posts = len(posts)
+
+	totalPosts, err := q.GetPostCount(ctx)
+	if err != nil {
+		return resp, errors.WithStack(err)
+	}
+	totalItems, err := q.GetItemCount(ctx)
+	if err != nil {
+		return resp, errors.WithStack(err)
+	}
+	resp.TotalPosts = int(totalPosts)
+	resp.TotalItems = int(totalItems)
 
 	termVectors := make([][]float32, len(terms))
 	for i, term := range terms {

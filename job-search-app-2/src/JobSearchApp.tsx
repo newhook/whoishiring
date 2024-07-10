@@ -80,16 +80,19 @@ const JobSearchApp = () => {
         body: formData,
       });
       const data = await response.json();
-      console.log(data)
       const items = data.items || [];
       setResults((data.comments || []).map((id: number) => items.find((item: Item) => item.id === id)));
       setParents((data.parents || []).map((id: number) => items.find((item: Item) => item.id === id)));
       setSearchDetails({
-        hackerNewsLinks: data.hackerNewsLinks || [],
-        resumeSummary: data.resumeSummary || "",
-        searchTerms: data.searchTerms || [],
+        hackerNewsLinks: data.hacker_news_links || [],
+        originalHackerNewsLinks: data.original_hacker_news_links || [],
+        resumeSummary: data.resume_summary || "",
+        searchTerms: data.search_terms || [],
+        totalPosts: data.total_posts || 0,
+        totalItems: data.total_items || 0,
         posts: data.posts || 0,
-        itemsSearched: data.itemsSearched || 0,
+        itemsSearched: data.items_searched || 0,
+        latencies: data.latencies || {},
       });
     } catch (error) {
       console.error('Error fetching jobs:', error);
@@ -217,10 +220,14 @@ const JobSearchApp = () => {
 
   interface SearchDetails {
     hackerNewsLinks: string[];
+    originalHackerNewsLinks: string[];
     resumeSummary: string;
     searchTerms: string[];
+    totalItems: number;
+    totalPosts: number;
     posts: number;
     itemsSearched: number;
+    latencies: {[key: string]: number};
   }
 
   const SearchDetailsSection = () => {
@@ -266,6 +273,24 @@ const JobSearchApp = () => {
 
             <Card>
               <CardHeader>
+                <CardTitle>Pre-Search Hacker News Links</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ul className="list-disc list-inside">
+                  {searchDetails.originalHackerNewsLinks.map((link, index) => (
+                      <li key={index} className="flex items-center">
+                        <a href={link} target="_blank" rel="noopener noreferrer" className="text-hn-orange hover:underline">
+                          {link}
+                        </a>
+                        <ExternalLink className="ml-2 h-4 w-4 text-hn-text" />
+                      </li>
+                  ))}
+                </ul>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
                 <CardTitle>Resume Summary</CardTitle>
               </CardHeader>
               <CardContent>
@@ -293,12 +318,26 @@ const JobSearchApp = () => {
                 <CardTitle>Search Statistics</CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-hn-text">
-                  Total Posts: <span className="font-bold">{searchDetails.posts}</span>
-                </p>
-                <p className="text-hn-text">
-                  Items Searched: <span className="font-bold">{searchDetails.itemsSearched}</span>
-                </p>
+                <div className="space-y-1">
+                  {Object.entries(searchDetails.latencies).map(([key, value]) => (
+                      <div key={key} className="text-hn-text">
+                        <span className="capitalize">{key.replace(/_/g, ' ')}: </span>
+                        <span className="font-mono text-hn-orange">{value.toFixed(6)} s</span>
+                      </div>
+                  ))}
+                  <p className="text-hn-text">
+                    Total Items: <span className="font-bold">{searchDetails.totalItems}</span>
+                  </p>
+                  <p className="text-hn-text">
+                    Total Posts: <span className="font-bold">{searchDetails.totalPosts}</span>
+                  </p>
+                  <p className="text-hn-text">
+                    Posts Searched: <span className="font-bold">{searchDetails.posts}</span>
+                  </p>
+                  <p className="text-hn-text">
+                    Items Searched: <span className="font-bold">{searchDetails.itemsSearched}</span>
+                  </p>
+                </div>
               </CardContent>
             </Card>
           </CollapsibleContent>

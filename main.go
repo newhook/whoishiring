@@ -164,17 +164,26 @@ func run(ctx context.Context, l *slog.Logger) error {
 		for _, id := range resp.Comments {
 			links = append(links, fmt.Sprintf("https://news.ycombinator.com/item?id=%d", id))
 		}
+
+		var originalLinks []string
+		for _, id := range resp.OriginalComments {
+			originalLinks = append(originalLinks, fmt.Sprintf("https://news.ycombinator.com/item?id=%d", id))
+		}
 		return c.JSON(http.StatusOK, map[string]any{
-			"comments":          resp.Comments,
-			"parents":           resp.Parents,
-			"items":             resp.Items,
-			"original_comments": resp.OriginalComments,
-			"original_parents":  resp.OriginalParents,
-			"hackerNewsLinks":   links,
-			"resumeSummary":     resp.ResumeSummary,
-			"searchTerms":       resp.SearchTerms,
-			"posts":             resp.Posts,
-			"itemsSearched":     resp.ItemsSearched,
+			"comments":                   resp.Comments,
+			"parents":                    resp.Parents,
+			"items":                      resp.Items,
+			"original_comments":          resp.OriginalComments,
+			"original_parents":           resp.OriginalParents,
+			"hacker_news_links":          links,
+			"original_hacker_news_links": originalLinks,
+			"resume_summary":             resp.ResumeSummary,
+			"search_terms":               resp.SearchTerms,
+			"total_posts":                resp.TotalPosts,
+			"total_items":                resp.TotalItems,
+			"posts":                      resp.Posts,
+			"items_searched":             resp.ItemsSearched,
+			"latencies":                  resp.Latencies,
 		})
 	})
 

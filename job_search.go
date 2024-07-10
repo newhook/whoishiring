@@ -47,14 +47,24 @@ type JobSearchResponse struct {
 	HNLinks          []string
 	ResumeSummary    string
 	SearchTerms      []string
+	TotalPosts       int
+	TotalItems       int
 	Posts            int
 	ItemsSearched    int
+	Latencies        map[string]float64
 	OriginalComments []int
 	OriginalParents  []int
 }
 
 func JobSearch(ctx context.Context, l *slog.Logger, search SearchTerms) (JobSearchResponse, error) {
-	var resp JobSearchResponse
+	resp := JobSearchResponse{
+		Latencies: map[string]float64{},
+	}
+	start := time.Now()
+	recordLatency := func(step string) {
+		resp.Latencies[step] = time.Since(start).Seconds()
+		start = time.Now()
+	}
 	var clause string
 	switch search.SearchType {
 	case SearchType_WhoIsHiring:
@@ -72,6 +82,7 @@ func JobSearch(ctx context.Context, l *slog.Logger, search SearchTerms) (JobSear
 		if err != nil {
 			return resp, err
 		}
+		recordLatency("scrape_linkedin")
 	} else if search.Resume != nil && strings.HasSuffix(search.ResumeName, "pdf") {
 		file, err := os.CreateTemp("", "*.pdf")
 		if err != nil {
@@ -118,6 +129,7 @@ func JobSearch(ctx context.Context, l *slog.Logger, search SearchTerms) (JobSear
 		if err != nil {
 			return resp, err
 		}
+		recordLatency("analyze_resume")
 		resp.ResumeSummary = analyze
 		if search.JobPrompt != "" {
 			search.JobPrompt = fmt.Sprintf("%s\nIn addition consider the following %s", search.JobPrompt, analyze)
@@ -130,6 +142,7 @@ func JobSearch(ctx context.Context, l *slog.Logger, search SearchTerms) (JobSear
 	if err != nil {
 		return resp, err
 	}
+	recordLatency("get_terms")
 	resp.SearchTerms = terms
 
 	limit := 10
@@ -137,8 +150,11 @@ func JobSearch(ctx context.Context, l *slog.Logger, search SearchTerms) (JobSear
 	if err != nil {
 		return resp, err
 	}
+	recordLatency("vector_search")
 	resp.ItemsSearched = queryResults.Searched
 	resp.Posts = queryResults.Posts
+	resp.TotalItems = queryResults.TotalItems
+	resp.TotalPosts = queryResults.TotalPosts
 
 	for _, result := range queryResults.Results {
 		resp.OriginalComments = append(resp.OriginalComments, result.Item.ID)
@@ -166,6 +182,7 @@ func JobSearch(ctx context.Context, l *slog.Logger, search SearchTerms) (JobSear
 	if err != nil {
 		return resp, err
 	}
+	recordLatency("get_jobs")
 
 	// The comments must be contained in the original query results.
 	for _, id := range jobIDs {

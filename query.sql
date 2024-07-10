@@ -11,6 +11,12 @@ SELECT * from items where id = ?;
 -- name: GetItemsWithTitle :many
 select * from items where title like ? order by id desc;
 
+-- name: GetPostCount :one
+select count(*) from items where parent = 0;
+
+-- name: GetItemCount :one
+select count(*) from items;
+
 -- name: GetItems :many
 SELECT * from items where id in (sqlc.slice('ids'));
 

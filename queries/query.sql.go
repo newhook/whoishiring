@@ -147,6 +147,17 @@ func (q *Queries) GetItem(ctx context.Context, id int) (Item, error) {
 	return i, err
 }
 
+const getItemCount = `-- name: GetItemCount :one
+select count(*) from items
+`
+
+func (q *Queries) GetItemCount(ctx context.Context) (int64, error) {
+	row := q.db.QueryRowContext(ctx, getItemCount)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const getItems = `-- name: GetItems :many
 SELECT id, deleted, type, "by", time, text, dead, parent, poll, url, score, title, descendants from items where id in (/*SLICE:ids*/?)
 `
@@ -331,6 +342,17 @@ func (q *Queries) GetLinkedInScrape(ctx context.Context, url string) (LinkedinSc
 		&i.UpdatedAt,
 	)
 	return i, err
+}
+
+const getPostCount = `-- name: GetPostCount :one
+select count(*) from items where parent = 0
+`
+
+func (q *Queries) GetPostCount(ctx context.Context) (int64, error) {
+	row := q.db.QueryRowContext(ctx, getPostCount)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
 }
 
 const getPosts = `-- name: GetPosts :many
