@@ -13,7 +13,7 @@ import (
 var apiKey = os.Getenv("PROXYCURL_API_KEY")
 
 func Person(ctx context.Context, linkedInProfileUrl string) (*PersonEndpointResponse, error) {
-	if true {
+	if false {
 		body, err := os.ReadFile("response.json")
 		if err != nil {
 			return nil, errors.WithStack(err)

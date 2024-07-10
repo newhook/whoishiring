@@ -9,6 +9,14 @@ module.exports = {
   ],
   theme: {
     extend: {
+      fontFamily: {
+        sans: ['Verdana', 'Geneva', 'sans-serif'],
+      },
+      fontSize: {
+        'hn-base': '10pt',
+        'hn-small': '8pt',
+        'hn-large': '14pt',
+      },
       colors: {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",

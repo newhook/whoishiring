@@ -59,3 +59,6 @@ Use cached results (for testing):
 ## Default settings:
 - Embedding model: voyage-2
 - Completion model: claude
+
+# Credits
+The openai and ollama embeddings code and vector operations come from https://github.com/philippgille/chromem-go.

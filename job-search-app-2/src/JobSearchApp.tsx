@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "./components/ui/tabs"
 import { RadioGroup, RadioGroupItem } from './components/ui/radio-group';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import { Upload, Linkedin } from 'lucide-react';
+import { Star } from 'lucide-react';
 
 
 interface Item {
@@ -211,14 +212,17 @@ const JobSearchApp = () => {
           </CollapsibleContent>
         </Collapsible>
         <Button onClick={() => searchJobs(type)} disabled={loading} className="w-full">
-          {loading ? 'Searching...' : type === 'hiring' ? 'Find a New Job' : 'Find an Employee'}
+          {loading ? 'Searching...' : type === 'hiring' ? 'Find a New Job' : 'Find me a rockstar!'}
+          {type !== 'hiring' && (
+          <Star className="text-hn-orange" />
+          )}
         </Button>
       </div>
   );
 
   return (
-      <div className="p-4 max-w-6xl mx-auto bg-hn-background min-h-screen">
-        <h1 className="text-3xl font-bold mb-8 text-center text-hn-orange">Job Search Application</h1>
+      <div className="p-4 max-w-6xl mx-auto bg-hn-background min-h-screen font-sans text-hn-base">
+        <h1 className="text-hn-large font-bold mb-8 text-center text-hn-orange">Job Search Application</h1>
         <Tabs defaultValue="hiring" className="w-full">
           <TabsList className="grid w-full grid-cols-2 bg-hn-orange">
             <TabsTrigger value="hiring"
