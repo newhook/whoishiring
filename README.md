@@ -12,11 +12,11 @@ Submit a resume or LinkedIn profile of your ideal candidate, and we'll identify 
 1. We load all posts and top-level comments from "whoishiring" posts into a local SQLite database.
 2. Embeddings are generated for each post using one of the supported embedding models.
 3. When given a job query or candidate profile:
-   a. The LLM suggests relevant search terms.
-   b. We search the database for comments matching these terms using the pre-calculated embeddings.
-   c. Comments are ranked based on embedding similarity to the search terms.
-   d. Similar comments from the same user are removed to ensure diversity.
-   e. The LLM provides recommendations based on the top K comments.
+   * The LLM suggests relevant search terms.
+   * We search the database for comments matching these terms using the pre-calculated embeddings.
+   * Comments are ranked based on embedding similarity to the search terms.
+   * Similar comments from the same user are removed to ensure diversity.
+   * The LLM provides recommendations based on the top K comments.
 
 ## Supported Embedding Models:
 * Ollama: gemini:2, nomic-embed-text
