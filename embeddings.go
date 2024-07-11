@@ -46,10 +46,8 @@ var embeddings = map[string]Embedding{
 }
 
 func ValidateEmbeddingModel(s string) error {
-	for _, model := range embeddings {
-		if model.Model == s {
-			break
-		}
+	if _, ok := embeddings[s]; ok {
+		return nil
 	}
 	return errors.Errorf("invalid embedding model: %s", s)
 }

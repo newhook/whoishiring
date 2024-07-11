@@ -117,10 +117,8 @@ var completions = map[string]Completion{
 }
 
 func ValidateCompletionModel(s string) error {
-	for _, model := range completions {
-		if model.Model == s {
-			break
-		}
+	if _, ok := completions[s]; ok {
+		return nil
 	}
 	return errors.Errorf("invalid completion model: %s", s)
 }
