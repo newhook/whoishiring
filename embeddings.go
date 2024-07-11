@@ -8,6 +8,7 @@ import (
 	"github.com/newhook/whoishiring/openai"
 	"github.com/newhook/whoishiring/queries"
 	"github.com/newhook/whoishiring/voyageai"
+	"github.com/pkg/errors"
 	"golang.org/x/sync/errgroup"
 	"log/slog"
 	"time"
@@ -42,6 +43,15 @@ var embeddings = map[string]Embedding{
 		Model:     VoyagerAI,
 		Embedding: voyageai.Embedding(voyageai.Voyage2Model),
 	},
+}
+
+func ValidateEmbeddingModel(s string) error {
+	for _, model := range embeddings {
+		if model.Model == s {
+			break
+		}
+	}
+	return errors.Errorf("invalid embedding model: %s", s)
 }
 
 func GetEmbedding(ctx context.Context, text string) ([]float32, error) {

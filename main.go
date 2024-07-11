@@ -62,6 +62,13 @@ func main() {
 func run(ctx context.Context, l *slog.Logger) error {
 	fmt.Println(banner)
 
+	if err := ValidateEmbeddingModel(*embeddingModel); err != nil {
+		return err
+	}
+	if err := ValidateCompletionModel(*completionModel); err != nil {
+		return err
+	}
+
 	var err error
 	dbPath := "./whoishiring.db"
 	db, err := sql.Open("sqlite3", dbPath)
@@ -80,10 +87,8 @@ func run(ctx context.Context, l *slog.Logger) error {
 		return err
 	}
 
-	for model := range embeddings {
-		if err := CreateEmbeddings(ctx, l, q, model); err != nil {
-			return err
-		}
+	if err := CreateEmbeddings(ctx, l, q, *embeddingModel); err != nil {
+		return err
 	}
 
 	//if err := PrintTokens(ctx); err != nil {

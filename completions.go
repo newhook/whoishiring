@@ -116,6 +116,15 @@ var completions = map[string]Completion{
 	},
 }
 
+func ValidateCompletionModel(s string) error {
+	for _, model := range completions {
+		if model.Model == s {
+			break
+		}
+	}
+	return errors.Errorf("invalid completion model: %s", s)
+}
+
 func AnalyzeResume(ctx context.Context, context any) (string, error) {
 	return completions[*completionModel].AnalyzeResume(ctx, context)
 }
