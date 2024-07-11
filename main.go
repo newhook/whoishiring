@@ -26,8 +26,6 @@ import (
 )
 
 var (
-	db                *sql.DB
-	q                 *queries.Queries
 	whoIsHiring       = "Ask HN: Who is hiring?%"
 	whoWantsToBeHired = "Ask HN: Who wants to be hired?%"
 )
@@ -66,7 +64,7 @@ func run(ctx context.Context, l *slog.Logger) error {
 
 	var err error
 	dbPath := "./whoishiring.db"
-	db, err = sql.Open("sqlite3", dbPath)
+	db, err := sql.Open("sqlite3", dbPath)
 	if err != nil {
 		return errors.WithStack(err)
 	}
@@ -76,14 +74,14 @@ func run(ctx context.Context, l *slog.Logger) error {
 		return errors.WithStack(err)
 	}
 
-	q = queries.New(db)
+	q := queries.New(db)
 
 	if err := FetchPosts(ctx, l, q); err != nil {
 		return err
 	}
 
 	for model := range embeddings {
-		if err := CreateEmbeddings(ctx, l, model); err != nil {
+		if err := CreateEmbeddings(ctx, l, q, model); err != nil {
 			return err
 		}
 	}
@@ -155,7 +153,7 @@ func run(ctx context.Context, l *slog.Logger) error {
 			terms.SearchType = SearchType_WhoWantToBeHired
 		}
 
-		resp, err := JobSearch(c.Request().Context(), l, terms)
+		resp, err := JobSearch(c.Request().Context(), l, q, terms)
 		if err != nil {
 			l.Error("job search failed", slog.String("error", err.Error()))
 			return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})

@@ -29,7 +29,7 @@ type VectorSearchResponse struct {
 	Searched   int
 }
 
-func VectorSearch(ctx context.Context, l *slog.Logger, window int, model string, clause string, terms []string, limit int) (VectorSearchResponse, error) {
+func VectorSearch(ctx context.Context, l *slog.Logger, q *queries.Queries, window int, model string, clause string, terms []string, limit int) (VectorSearchResponse, error) {
 	var resp VectorSearchResponse
 	if window > MaxWindow {
 		window = MaxWindow
@@ -61,7 +61,7 @@ func VectorSearch(ctx context.Context, l *slog.Logger, window int, model string,
 	}
 
 	start := time.Now()
-	results, searched, err := searchPosts(ctx, limit, termVectors, posts[:window], model, terms)
+	results, searched, err := searchPosts(ctx, q, limit, termVectors, posts[:window], model, terms)
 	if err != nil {
 		return resp, err
 	}
@@ -88,7 +88,7 @@ func VectorSearch(ctx context.Context, l *slog.Logger, window int, model string,
 	return resp, nil
 }
 
-func searchPosts(ctx context.Context, limit int, termVectors [][]float32, posts []queries.Item, model string, terms []string) ([]Result, int, error) {
+func searchPosts(ctx context.Context, q *queries.Queries, limit int, termVectors [][]float32, posts []queries.Item, model string, terms []string) ([]Result, int, error) {
 	var mutex sync.Mutex
 	h := binheap.EmptyTopNHeap[Result](limit*len(termVectors), func(i, j Result) bool {
 		return i.Similarity > j.Similarity

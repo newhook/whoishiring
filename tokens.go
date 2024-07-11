@@ -3,11 +3,12 @@ package main
 import (
 	"context"
 	"fmt"
+	"github.com/newhook/whoishiring/queries"
 	"github.com/pkoukk/tiktoken-go"
 	tiktoken_loader "github.com/pkoukk/tiktoken-go-loader"
 )
 
-func PrintTokens(ctx context.Context) error {
+func PrintTokens(ctx context.Context, q *queries.Queries) error {
 	encoding := "cl100k_base"
 
 	tiktoken.SetBpeLoader(tiktoken_loader.NewOfflineLoader())

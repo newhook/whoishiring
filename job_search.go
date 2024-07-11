@@ -56,7 +56,7 @@ type JobSearchResponse struct {
 	OriginalParents  []int
 }
 
-func JobSearch(ctx context.Context, l *slog.Logger, search SearchTerms) (JobSearchResponse, error) {
+func JobSearch(ctx context.Context, l *slog.Logger, q *queries.Queries, search SearchTerms) (JobSearchResponse, error) {
 	resp := JobSearchResponse{
 		Latencies: map[string]float64{},
 	}
@@ -146,7 +146,7 @@ func JobSearch(ctx context.Context, l *slog.Logger, search SearchTerms) (JobSear
 	resp.SearchTerms = terms
 
 	limit := 10
-	queryResults, err := VectorSearch(ctx, l, search.Months, *embeddingModel, clause, terms, limit)
+	queryResults, err := VectorSearch(ctx, l, q, search.Months, *embeddingModel, clause, terms, limit)
 	if err != nil {
 		return resp, err
 	}

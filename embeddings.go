@@ -48,18 +48,17 @@ func GetEmbedding(ctx context.Context, text string) ([]float32, error) {
 	return embeddings[*embeddingModel].Embedding(ctx, text)
 }
 
-func CreateEmbeddings(ctx context.Context, l *slog.Logger, model string) error {
-	if err := createEmbeddingsFor(ctx, l, whoIsHiring, model); err != nil {
+func CreateEmbeddings(ctx context.Context, l *slog.Logger, q *queries.Queries, model string) error {
+	if err := createEmbeddingsFor(ctx, l, q, whoIsHiring, model); err != nil {
 		return err
 	}
-	if err := createEmbeddingsFor(ctx, l, whoWantsToBeHired, model); err != nil {
+	if err := createEmbeddingsFor(ctx, l, q, whoWantsToBeHired, model); err != nil {
 		return err
 	}
 	return nil
 }
 
-func createEmbeddingsFor(ctx context.Context, l *slog.Logger, clause string, model string) error {
-	q := queries.New(db)
+func createEmbeddingsFor(ctx context.Context, l *slog.Logger, q *queries.Queries, clause string, model string) error {
 	posts, err := q.GetItemsWithTitle(ctx, clause)
 	if err != nil {
 		return err
